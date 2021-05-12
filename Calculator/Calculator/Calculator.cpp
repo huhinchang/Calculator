@@ -175,22 +175,14 @@ float evaluate(std::queue<Token> tokens) {
 			// evaluate
 			switch (token.operatorChar)
 			{
-			case '+':
-				numberStack.push(num2 + num1);
-				break;
-			case '-':
-				numberStack.push(num2 - num1);
-				break;
-			case '*':
-				numberStack.push(num2 * num1);
-				break;
+			case '+': numberStack.push(num2 + num1); break;
+			case '-': numberStack.push(num2 - num1); break;
+			case '*': numberStack.push(num2 * num1); break;
 			case '/':
 				if (num1 == 0) throw std::invalid_argument("Division by zero error!");
 				numberStack.push(num2 / num1);
 				break;
-			default:
-				throw std::invalid_argument("This message should not appear. I'll be scared if it does...");
-				break;
+			default: throw std::invalid_argument("This message should not appear. I'll be scared if it does..."); break;
 			}
 
 		} else if (token.type == Token::Type::OpeningBracket || token.type == Token::Type::ClosingBracket) {
