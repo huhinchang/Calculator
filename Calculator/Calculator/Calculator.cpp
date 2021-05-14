@@ -43,15 +43,15 @@ void print_help() {
 }
 
 int alphabet_to_int(const char c) {
-	assert(c >= 'a' && c <= 'z');
+	if (c < 'a' || c >'z') throw std::invalid_argument("Alphabet must be lowercase a-z");
 	return c - 'a';
 }
 char int_to_alphabet(const int n) {
-	assert(n >= 0 && n <= 25);
+	if (n < 0 || n > 25) throw std::invalid_argument("Number must be between 0 and 25 (inclusive)");
 	return n + 'a';
 }
 
-void print_const(const float constants[]) {
+void print_vars(const float constants[]) {
 	assert(constants != NULL);
 	std::cout << std::endl << "##### CONSTANTS #####" << std::endl;
 	for (size_t i = 0; i < 26; i++)
@@ -211,31 +211,33 @@ float evaluate(std::queue<Token> tokens) {
 
 int main()
 {
-	float constants[26] = { 0 };
-	constants[alphabet_to_int('c')] = 299792458;
-	constants[alphabet_to_int('e')] = 2.71;
-	constants[alphabet_to_int('g')] = 9.81;
-	constants[alphabet_to_int('p')] = 3.14;
+	float vars[26] = { 0 };
+	vars[alphabet_to_int('c')] = 299792458;
+	vars[alphabet_to_int('e')] = 2.71;
+	vars[alphabet_to_int('g')] = 9.81;
+	vars[alphabet_to_int('p')] = 3.14;
 
 	while (true) {
 		std::cout << std::endl << "##### COMMANDS #####" << std::endl;
 		std::cout << "Type 'help' for help.\n";
-		std::cout << "Type 'const' to to view all constants.\n";
+		std::cout << "Type 'list' to to view all variables.\n";
 		std::cout << "Type 'calc <expression>' to evaluate the expression.\n";
 		std::cout << "Type 'assign <a-z> <expression>' to assign the value of the expression to the constant.\n";
 		std::cout << ">> ";
 
 		std::string input;
-		std::getline(std::cin, input); // ignores whitespace
+		std::cin >> input;
+		// std::getline(std::cin, input); // ignores whitespace
 
 		if (input == "help") {
 			print_help();
-		} if (input == "const") {
-			print_const(constants);
-		} else {
-
+		} if (input == "list") {
+			print_vars(vars);
+		} else if (input == "calc") {
+			std::string equation;
+			std::cin >> equation;
 			try {
-				std::queue<Token> tokens = tokenize(input);
+				std::queue<Token> tokens = tokenize(equation);
 				//print_tokens(tokens);
 				tokens = shunting_yard(tokens);
 				//print_tokens(tokens);
@@ -244,7 +246,35 @@ int main()
 			catch (std::invalid_argument& e) {
 				std::cerr << e.what() << std::endl;
 			}
+		} else if (input == "assign") {
+			try {
+				// get variable
+				char letter;
+				std::cin >> letter;
+				const int var_index = alphabet_to_int(letter);
 
+				// get equation
+				std::string equation;
+				std::cin >> equation;
+
+				// parse and evaluate
+				std::queue<Token> tokens = tokenize(equation);
+				tokens = shunting_yard(tokens);
+				const float result = evaluate(tokens);
+				// assign
+				vars[alphabet_to_int(letter)] = result;
+				std::cout << "assigned " << result << " to " << letter << std::endl;
+			}
+			catch (std::invalid_argument& e) {
+				std::cerr << e.what() << std::endl;
+			}
+		} else {
+			std::cerr << "Unknown command" << std::endl;
+		}
+
+		std::getline(std::cin, input);
+		if (input != "") {
+			std::cout << "ignored extraneous input" << std::endl;
 		}
 	}
 }
