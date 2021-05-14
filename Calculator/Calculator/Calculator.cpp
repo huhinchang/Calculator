@@ -7,6 +7,7 @@
 #include <stack>
 #include <sstream> 
 #include <stdexcept>
+#include <assert.h>
 
 #define NUMBER_PRECEDENCE 0
 #define ADD_PRECEDENCE 1
@@ -25,37 +26,51 @@ public:
 	};
 
 	const Type type;
-	const int value; // acts as the number if type is Number or precedence if type is Operator
+	const float value; // acts as the number if type is Number or precedence if type is Operator
 	const char operatorChar;
 
-	Token(const Type t, const int v, const int c = '?') : type(t), value(v), operatorChar(c) {
+	Token(const Type t, const float v, const int c = '?') : type(t), value(v), operatorChar(c) {
 	}
 };
 
 void print_help() {
-	std::cout << "##### HELP #####" << std::endl;
+	std::cout << std::endl << "##### HELP #####" << std::endl;
+	std::cout << "This is an implementation of the shunting-yard algorithm of parsing infix-notation mathematical equations." << std::endl;
+	std::cout << "It takes into account nested brackets and operator precedence." << std::endl;
+	std::cout << "This implementation also checks for mismatched brackets, operators, and decimal form" << std::endl;
+	std::cout << "IMPORTANT: it does not support unary operators, so to input negative numbers you must format it as (0-x)." << std::endl;
+	std::cout << "Supported operators: +, -, /, *" << std::endl;
+}
+
+int alphabet_to_int(const char c) {
+	assert(c >= 'a' && c <= 'z');
+	return c - 'a';
+}
+char int_to_alphabet(const int n) {
+	assert(n >= 0 && n <= 25);
+	return n + 'a';
+}
+
+void print_const(const float constants[]) {
+	assert(constants != NULL);
+	std::cout << std::endl << "##### CONSTANTS #####" << std::endl;
+	for (size_t i = 0; i < 26; i++)
+	{
+		std::cout << int_to_alphabet(i) << ": " << constants[i] << std::endl;
+	}
 }
 
 std::queue<Token> tokenize(const std::string equation) {
-	std::cout << "evaluating equation " << equation << std::endl;
 	std::queue<Token> output;
 
 	for (size_t i = 0; i < equation.length(); ++i)
 	{
 		const char c = equation[i];
 		if (isdigit(c)) {
-			std::cout << "type:digit\n";
-			/*
-			int len = 1;
-			while (isdigit(equation[i + len])) {
-				++len;
-			}
-			output.push(Token(Token::Type::Number, equation.substr(i, len), 0));
-			i += len - 1; // skip the "read" characters
-			*/
-			int number = std::stoi(equation.substr(i));
+			size_t number_len = 0;
+			float number = std::stof(equation.substr(i), &number_len);
 			output.push(Token(Token::Type::Number, number));
-			i += number / 10; // skip the "read" characters
+			i += number_len - 1;
 		} else {
 			switch (c)
 			{
@@ -72,10 +87,10 @@ std::queue<Token> tokenize(const std::string equation) {
 				output.push(Token(Token::Type::Operator, DIV_PRECEDENCE, c));
 				break;
 			case '(':
-				output.push(Token(Token::Type::OpeningBracket, 0));
+				output.push(Token(Token::Type::OpeningBracket, 0, '('));
 				break;
 			case ')':
-				output.push(Token(Token::Type::ClosingBracket, 0));
+				output.push(Token(Token::Type::ClosingBracket, 0, ')'));
 				break;
 			default:
 				throw std::invalid_argument("invalid character detected in the equation!");
@@ -83,7 +98,6 @@ std::queue<Token> tokenize(const std::string equation) {
 			}
 		}
 	}
-	std::cout << "tokenization complete" << std::endl;
 	return output;
 	// std::cout << equation << " + 1 = " << std::stof(equation) + 1 << std::endl;
 }
@@ -111,7 +125,7 @@ std::queue<Token> shunting_yard(std::queue<Token> tokens) {
 		if (token.type == Token::Type::Number) {
 			outQ.push(token);
 		} else if (token.type == Token::Type::Operator) {
-			while (!opStack.empty() && opStack.top().value > token.value && opStack.top().type != Token::Type::OpeningBracket) {
+			while (!opStack.empty() && opStack.top().value >= token.value && opStack.top().type != Token::Type::OpeningBracket) {
 				outQ.push(opStack.top());
 				opStack.pop();
 			}
@@ -119,7 +133,7 @@ std::queue<Token> shunting_yard(std::queue<Token> tokens) {
 		} else if (token.type == Token::Type::OpeningBracket) {
 			opStack.push(token);
 		} else if (token.type == Token::Type::ClosingBracket) {
-			while (!opStack.empty() && opStack.top().type != Token::Type::ClosingBracket) {
+			while (!opStack.empty() && opStack.top().type != Token::Type::OpeningBracket) {
 				outQ.push(opStack.top());
 				opStack.pop();
 			}
@@ -130,7 +144,6 @@ std::queue<Token> shunting_yard(std::queue<Token> tokens) {
 			} else {
 				throw std::invalid_argument("Unknown error while attempting to find bracket pairs!");
 			}
-			opStack.push(token);
 		}
 	}
 
@@ -142,7 +155,6 @@ std::queue<Token> shunting_yard(std::queue<Token> tokens) {
 		outQ.push(opStack.top());
 		opStack.pop();
 	}
-
 
 	return outQ;
 }
@@ -196,10 +208,21 @@ float evaluate(std::queue<Token> tokens) {
 		return numberStack.top();
 	}
 }
+
 int main()
 {
+	float constants[26] = { 0 };
+	constants[alphabet_to_int('c')] = 299792458;
+	constants[alphabet_to_int('e')] = 2.71;
+	constants[alphabet_to_int('g')] = 9.81;
+	constants[alphabet_to_int('p')] = 3.14;
+
 	while (true) {
-		std::cout << "Enter your equation or type 'help' for help.\n";
+		std::cout << std::endl << "##### COMMANDS #####" << std::endl;
+		std::cout << "Type 'help' for help.\n";
+		std::cout << "Type 'const' to to view all constants.\n";
+		std::cout << "Type 'calc <expression>' to evaluate the expression.\n";
+		std::cout << "Type 'assign <a-z> <expression>' to assign the value of the expression to the constant.\n";
 		std::cout << ">> ";
 
 		std::string input;
@@ -207,14 +230,16 @@ int main()
 
 		if (input == "help") {
 			print_help();
+		} if (input == "const") {
+			print_const(constants);
 		} else {
 
 			try {
 				std::queue<Token> tokens = tokenize(input);
-				print_tokens(tokens);
+				//print_tokens(tokens);
 				tokens = shunting_yard(tokens);
-				print_tokens(tokens);
-				std::cout << evaluate(tokens) << std::endl;
+				//print_tokens(tokens);
+				std::cout << "= " << evaluate(tokens) << std::endl;
 			}
 			catch (std::invalid_argument& e) {
 				std::cerr << e.what() << std::endl;
