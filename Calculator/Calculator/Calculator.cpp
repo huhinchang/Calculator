@@ -35,11 +35,16 @@ public:
 
 void print_help() {
 	std::cout << std::endl << "##### HELP #####" << std::endl;
-	std::cout << "This is an implementation of the shunting-yard algorithm of parsing infix-notation mathematical equations." << std::endl;
-	std::cout << "It takes into account nested brackets and operator precedence." << std::endl;
-	std::cout << "This implementation also checks for mismatched brackets, operators, and decimal form" << std::endl;
-	std::cout << "IMPORTANT: it does not support unary operators, so to input negative numbers you must format it as (0-x)." << std::endl;
-	std::cout << "Supported operators: +, -, /, *" << std::endl;
+	std::cout << "* This is an implementation of the shunting-yard algorithm of parsing infix-notation mathematical equations." << std::endl;
+	std::cout << "* It takes into account nested brackets and operator precedence." << std::endl;
+	std::cout << "* This implementation also checks for mismatched brackets, mismatched operators and decimal points, division by zero, and other undefined operations." << std::endl;
+	std::cout << std::endl << "##### FORMATTING #####" << std::endl;
+	std::cout << "* Parser does not support unary operators, so to input negative numbers you must format it as (0-x)" << std::endl;
+	std::cout << "* Supported operators: +, -, /, *, ^, (, )" << std::endl;
+	std::cout << "* Supported numbers  : 0-9" << std::endl;
+	std::cout << "* Supported variables: a-z" << std::endl;
+	std::cout << "* Sample equation: 9.1*(2+3) + e" << std::endl;
+	std::cout << "  Output of above: 48.21" << std::endl;
 }
 
 int alphabet_to_int(const char c) {
@@ -85,6 +90,9 @@ std::queue<Token> tokenize(const std::string equation, const float vars[]) {
 				break;
 			case '/':
 				output.push(Token(Token::Type::Operator, DIV_PRECEDENCE, c));
+				break;
+			case '^':
+				output.push(Token(Token::Type::Operator, POW_PRECEDENCE, c));
 				break;
 			case '(':
 				output.push(Token(Token::Type::OpeningBracket, 0, '('));
@@ -173,30 +181,36 @@ float evaluate(std::queue<Token> tokens) {
 			numberStack.push(token.value);
 		} else if (token.type == Token::Type::Operator) {
 			// get operands
-			float num1;
+			float num_right;
 			if (numberStack.empty()) {
 				throw std::invalid_argument("Mismatched operators/numbers!");
 			} else {
-				num1 = numberStack.top();
+				num_right = numberStack.top();
 				numberStack.pop();
 			}
-			float num2;
+			float num_left;
 			if (numberStack.empty()) {
 				throw std::invalid_argument("Mismatched operators/numbers!");
 			} else {
-				num2 = numberStack.top();
+				num_left = numberStack.top();
 				numberStack.pop();
 			}
 
 			// evaluate
 			switch (token.operatorChar)
 			{
-			case '+': numberStack.push(num2 + num1); break;
-			case '-': numberStack.push(num2 - num1); break;
-			case '*': numberStack.push(num2 * num1); break;
+			case '+': numberStack.push(num_left + num_right); break;
+			case '-': numberStack.push(num_left - num_right); break;
+			case '*': numberStack.push(num_left * num_right); break;
 			case '/':
-				if (num1 == 0) throw std::invalid_argument("Division by zero error!");
-				numberStack.push(num2 / num1);
+				if (num_right == 0) throw std::invalid_argument("Division by zero error!");
+				numberStack.push(num_left / num_right);
+				break;
+			case '^':
+				if (num_left == 0 && num_right == 0) throw std::invalid_argument("0^0 is undefined!");
+				if (num_left < 0 && ceilf(num_right) != num_right) throw std::invalid_argument("Can't raise negative number to non-integer power!");
+				if (num_left == 0 && num_right < 0) throw std::invalid_argument("Can't raise 0 to negative power!");
+				numberStack.push(pow(num_left, num_right));
 				break;
 			default: throw std::invalid_argument("This message should not appear. I'll be scared if it does..."); break;
 			}
@@ -217,9 +231,9 @@ int main()
 {
 	float vars[26] = { 0 };
 	vars[alphabet_to_int('c')] = 299792458;
-	vars[alphabet_to_int('e')] = 2.71;
+	vars[alphabet_to_int('e')] = 2.71828;
 	vars[alphabet_to_int('g')] = 9.81;
-	vars[alphabet_to_int('p')] = 3.14;
+	vars[alphabet_to_int('p')] = 3.14159;
 
 	while (true) {
 		std::cout << std::endl << "##### COMMANDS #####" << std::endl;
@@ -253,9 +267,9 @@ int main()
 		} else if (input == "assign") {
 			try {
 				// get variable
-				char letter;
-				std::cin >> letter;
-				const int var_index = alphabet_to_int(letter);
+				char var;
+				std::cin >> var;
+				const int var_index = alphabet_to_int(var);
 
 				// get equation
 				std::string equation;
@@ -266,8 +280,8 @@ int main()
 				tokens = shunting_yard(tokens);
 				const float result = evaluate(tokens);
 				// assign
-				vars[alphabet_to_int(letter)] = result;
-				std::cout << letter << " is now equal to " << result << std::endl;
+				std::cout << var << " changed from " << vars[var_index] << " to " << result << std::endl;
+				vars[var_index] = result;
 			}
 			catch (std::invalid_argument& e) {
 				std::cerr << e.what() << std::endl;
