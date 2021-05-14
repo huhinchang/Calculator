@@ -51,16 +51,16 @@ char int_to_alphabet(const int n) {
 	return n + 'a';
 }
 
-void print_vars(const float constants[]) {
-	assert(constants != NULL);
-	std::cout << std::endl << "##### CONSTANTS #####" << std::endl;
+void print_vars(const float vars[]) {
+	assert(vars != NULL);
+	std::cout << std::endl << "##### VARIABLES #####" << std::endl;
 	for (size_t i = 0; i < 26; i++)
 	{
-		std::cout << int_to_alphabet(i) << ": " << constants[i] << std::endl;
+		std::cout << int_to_alphabet(i) << ": " << vars[i] << std::endl;
 	}
 }
 
-std::queue<Token> tokenize(const std::string equation) {
+std::queue<Token> tokenize(const std::string equation, const float vars[]) {
 	std::queue<Token> output;
 
 	for (size_t i = 0; i < equation.length(); ++i)
@@ -93,7 +93,11 @@ std::queue<Token> tokenize(const std::string equation) {
 				output.push(Token(Token::Type::ClosingBracket, 0, ')'));
 				break;
 			default:
-				throw std::invalid_argument("invalid character detected in the equation!");
+				if (c >= 'a' && c <= 'z') {
+					output.push(Token(Token::Type::Number, vars[alphabet_to_int(c)], c));
+				} else {
+					throw std::invalid_argument("invalid character detected in the equation!");
+				}
 				break;
 			}
 		}
@@ -237,7 +241,7 @@ int main()
 			std::string equation;
 			std::cin >> equation;
 			try {
-				std::queue<Token> tokens = tokenize(equation);
+				std::queue<Token> tokens = tokenize(equation, vars);
 				//print_tokens(tokens);
 				tokens = shunting_yard(tokens);
 				//print_tokens(tokens);
@@ -258,12 +262,12 @@ int main()
 				std::cin >> equation;
 
 				// parse and evaluate
-				std::queue<Token> tokens = tokenize(equation);
+				std::queue<Token> tokens = tokenize(equation, vars);
 				tokens = shunting_yard(tokens);
 				const float result = evaluate(tokens);
 				// assign
 				vars[alphabet_to_int(letter)] = result;
-				std::cout << "assigned " << result << " to " << letter << std::endl;
+				std::cout << letter << " is now equal to " << result << std::endl;
 			}
 			catch (std::invalid_argument& e) {
 				std::cerr << e.what() << std::endl;
