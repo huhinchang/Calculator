@@ -74,7 +74,6 @@ std::queue<Token> tokenize(const std::string equation, const float vars[]) {
 }
 
 std::queue<Token> shunting_yard(std::queue<Token> tokens) {
-	// uses the shunting-yard algorithm
 	std::queue<Token> outQ;    // output queue
 	std::stack<Token> opStack; // operator stack
 	while (!tokens.empty()) {

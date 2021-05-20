@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <string>
-// #include <stdexcept>
 #include <assert.h>
 #include "ShuntingYard.h"
 #include "Conversion.h"
@@ -58,13 +57,6 @@ int main()
 			std::string equation;
 			std::cin >> equation;
 			try {
-				/*
-					std::queue<Token> tokens = tokenize(equation, vars);
-					//print_tokens(tokens);
-					tokens = shunting_yard(tokens);
-					//print_tokens(tokens);
-					std::cout << "= " << evaluate(tokens) << std::endl;
-				*/
 				float result = parse_and_evaluate(equation, vars);
 				std::cout << "= " << result << std::endl;
 			}
@@ -73,22 +65,17 @@ int main()
 			}
 		} else if (input == "assign") {
 			try {
-				// get variable
+				// get variable  part of the string
 				char var;
 				std::cin >> var;
 				const int var_index = alphabet_to_int(var);
 
-				// get equation
+				// get equation part of the string
 				std::string equation;
 				std::cin >> equation;
 
-				// parse and evaluate
-				/*
-				std::queue<Token> tokens = tokenize(equation, vars);
-				tokens = shunting_yard(tokens);
-				const float result = evaluate(tokens);
-				*/
 				float result = parse_and_evaluate(equation, vars);
+
 				// assign
 				std::cout << var << " changed from " << vars[var_index] << " to " << result << std::endl;
 				vars[var_index] = result;
